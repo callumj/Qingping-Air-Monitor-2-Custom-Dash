@@ -148,33 +148,7 @@ Expected:
 - `ha-json-updater.sh` is running.
 - `qmlscene -platform eglfs ... Dashboard.qml` is running.
 
-## What The Example Dashboard Shows
-
-The sample QML dashboard is intentionally simple:
-
-- local clock
-- room temperature
-- humidity
-- CO2
-- outside temperature
-- outside humidity
-- lake/water temperature
-- light state
-- three weather forecast slots
-- optional latest garden/camera snapshot
-
-It is meant to be edited for your own entities and visual design.
-
-## Optional Camera Snapshot Mode
-
-The updater can also fetch a JSON camera snapshot API and download the newest
-JPEG to local storage. The QML can then alternate between dashboard and image.
-
-This is useful when the source image is too heavy or awkward for the panel to
-load as a web page. The image display uses a centered crop: fit to display
-height, preserve aspect ratio, and center horizontally.
-
-## Optional MQTT Polling
+## Ensuring MQTT Data Continues To Publish
 
 On the tested device, `QingSnow2App -platform offscreen` kept the third-party
 MQTT client alive. Killing `QingSnow2App` entirely stopped MQTT publishing even
@@ -208,6 +182,32 @@ examples/home-assistant/qingping-mqtt-poll.yaml
 
 This kept HA online during a 10 minute monitor, with MQTT updates arriving at
 the requested 15 second cadence.
+
+## What The Example Dashboard Shows
+
+The sample QML dashboard is intentionally simple:
+
+- local clock
+- room temperature
+- humidity
+- CO2
+- outside temperature
+- outside humidity
+- lake/water temperature
+- light state
+- three weather forecast slots
+- optional latest garden/camera snapshot
+
+It is meant to be edited for your own entities and visual design.
+
+## Optional Camera Snapshot Mode
+
+The updater can also fetch a JSON camera snapshot API and download the newest
+JPEG to local storage. The QML can then alternate between dashboard and image.
+
+This is useful when the source image is too heavy or awkward for the panel to
+load as a web page. The image display uses a centered crop: fit to display
+height, preserve aspect ratio, and center horizontally.
 
 ## Optional SSH Hardening
 
