@@ -70,6 +70,34 @@ QT_QPA_PLATFORM=offscreen /qingping/bin/QingSnow2App -platform offscreen
 This allows a custom `qmlscene -platform eglfs` dashboard to own the display
 while Snow continues publishing MQTT sensor data in the background.
 
+### MQTT Report Request
+
+Snow subscribes to the third-party down topic configured in
+`/data/etc/setting.ini`, usually:
+
+```text
+qingping/DEVICE_MAC/down
+```
+
+The tested device resumed third-party reporting when this payload was published
+to that topic:
+
+```json
+{"type":"12","up_itvl":"15","duration":"21600"}
+```
+
+It then published current sensor data to:
+
+```text
+qingping/DEVICE_MAC/up
+```
+
+If Home Assistant shows the Qingping integration as unavailable after a device
+reboot, confirm MQTT by subscribing to `qingping/#`, then publish the request to
+the down topic. If that works, add a Home Assistant automation like
+`examples/home-assistant/qingping-mqtt-poll.yaml` to send the request on HA
+start and periodically.
+
 ## SSH And Dropbear
 
 The tested device runs Dropbear for SSH. Modern OpenSSH clients may need legacy

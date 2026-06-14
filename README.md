@@ -63,6 +63,8 @@ JSON polling is far more robust on this hardware.
 
 ```text
 examples/
+  home-assistant/
+    qingping-mqtt-poll.yaml
   ha-config.example.json
   ha-json-updater.sh
   init.d/
@@ -170,6 +172,39 @@ JPEG to local storage. The QML can then alternate between dashboard and image.
 This is useful when the source image is too heavy or awkward for the panel to
 load as a web page. The image display uses a centered crop: fit to display
 height, preserve aspect ratio, and center horizontally.
+
+## Optional MQTT Polling
+
+On the tested device, `QingSnow2App -platform offscreen` kept the third-party
+MQTT client alive, but reporting after reboot still needed a report request on
+the device's down topic.
+
+The topic pattern is configured in `/data/etc/setting.ini`:
+
+```ini
+[third]
+pub_topic=qingping/DEVICE_MAC/up
+sub_topic=qingping/DEVICE_MAC/down
+```
+
+Publishing this payload to `qingping/DEVICE_MAC/down` caused the device to
+immediately publish current sensor data to `qingping/DEVICE_MAC/up`:
+
+```json
+{"type":"12","up_itvl":"15","duration":"21600"}
+```
+
+In the tested setup, `up_itvl` is the reporting interval in seconds and
+`duration` is the requested reporting window in seconds. The included Home
+Assistant package example publishes the request on HA start and every five
+minutes:
+
+```text
+examples/home-assistant/qingping-mqtt-poll.yaml
+```
+
+This kept HA online during a 10 minute monitor, with MQTT updates arriving at
+the requested 15 second cadence.
 
 ## Optional SSH Hardening
 

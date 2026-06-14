@@ -1,0 +1,27 @@
+# Home Assistant package example.
+#
+# Some Qingping firmware/integration combinations do not begin third-party MQTT
+# reporting after boot until the device receives a report request on its down
+# topic. This automation sends that request on Home Assistant start and then
+# refreshes the reporting window periodically.
+#
+# Replace DEVICE_MAC with the uppercase MAC-like device identifier used in your
+# Qingping third-party MQTT topics, for example qingping/DEVICE_MAC/up.
+
+automation:
+  - id: qingping_request_sensor_report
+    alias: Qingping Request Sensor Report
+    description: Keep the Qingping third-party MQTT reporting window active.
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+      - platform: time_pattern
+        minutes: "/5"
+    action:
+      - service: mqtt.publish
+        data:
+          topic: qingping/DEVICE_MAC/down
+          payload: '{"type":"12","up_itvl":"15","duration":"21600"}'
+          qos: 0
+          retain: false
