@@ -48,9 +48,10 @@ The stable pattern is:
 2. Start a late init.d script after the stock launcher.
 3. Stop the stock UI/watchdog processes.
 4. Keep `miio_client` running for Miio support.
-5. Run `QingSnow2App -platform offscreen` if you still want the device's
-   built-in third-party MQTT sensor publishing. Killing Snow entirely stops this
-   MQTT publishing path; `miio_client` alone is not enough.
+5. Run `QingSnow2App -platform offscreen`. This is critical: killing Snow
+   entirely stops the device's sensor data publishing path, including Qingping's
+   own data flow and the MQTT data used by Home Assistant. `miio_client` alone is
+   not enough.
 6. Run a shell updater that fetches Home Assistant state and writes local JSON.
 7. Run `qmlscene -platform eglfs` with a local QML dashboard.
 8. Let the QML read only local files, such as:
@@ -141,20 +142,30 @@ ps -o pid,ppid,stat,comm,args | grep -E "qt-kiosk|qmlscene|ha-json|QingSnow|watc
 Expected:
 
 - `miio_client` is still running.
-- `QingSnow2App -platform offscreen` is running if MQTT reporting is enabled.
+- `QingSnow2App -platform offscreen` is running so sensor data continues to publish.
 - `watchdog.sh` is not running.
 - no visible/non-offscreen `QingSnow2App` is running.
 - `qt-kiosk-supervisor.sh` is running.
 - `ha-json-updater.sh` is running.
 - `qmlscene -platform eglfs ... Dashboard.qml` is running.
 
-## Ensuring MQTT Data Continues To Publish
+## Ensuring Sensor Data Continues To Publish
 
-On the tested device, `QingSnow2App -platform offscreen` kept the third-party
-MQTT client alive. Killing `QingSnow2App` entirely stopped MQTT publishing even
-though `miio_client` was still running. However, keeping Snow alive in offscreen
-mode was only half of the fix: reporting after reboot still needed a report
-request on the device's down topic.
+This part is not optional if you still want live sensor data. On the tested
+device, killing `QingSnow2App` entirely stopped data publishing, including
+Qingping's own data path and the MQTT updates consumed by Home Assistant.
+`miio_client` remained running, but it was not enough to make sensor data
+available.
+
+The working compromise is to keep Snow running without letting it own the
+display:
+
+```sh
+QT_QPA_PLATFORM=offscreen /qingping/bin/QingSnow2App -platform offscreen
+```
+
+Keeping Snow alive in offscreen mode preserves the publisher, but reporting
+after reboot may still need a report request on the device's MQTT down topic.
 
 The topic pattern is configured in `/data/etc/setting.ini`:
 
@@ -164,8 +175,8 @@ pub_topic=qingping/DEVICE_MAC/up
 sub_topic=qingping/DEVICE_MAC/down
 ```
 
-Publishing this payload to `qingping/DEVICE_MAC/down` caused the device to
-immediately publish current sensor data to `qingping/DEVICE_MAC/up`:
+Publishing this payload to `qingping/DEVICE_MAC/down` caused Snow to immediately
+publish current sensor data to `qingping/DEVICE_MAC/up`:
 
 ```json
 {"type":"12","up_itvl":"15","duration":"21600"}
@@ -268,8 +279,8 @@ recovery path.
 - You are modifying boot behavior on an embedded device.
 - Keep a way back in via SSH or serial before experimenting.
 - Do not kill `miio_client` if you still want Miio support.
-- Do not kill `QingSnow2App` entirely if you still want the stock third-party
-  MQTT publishing path; run it with `-platform offscreen` instead, then publish
-  the report request on the down topic to start/refresh polling.
+- Do not kill `QingSnow2App` entirely if you still want sensor data available
+  anywhere; run it with `-platform offscreen` instead, then publish the report
+  request on the down topic to start/refresh polling.
 - Do not commit Home Assistant tokens or private URLs.
 - The examples are based on one tested firmware. Paths/process names may vary.
