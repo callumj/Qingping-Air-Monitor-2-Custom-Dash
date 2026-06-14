@@ -40,7 +40,9 @@ The most reliable pattern found:
 
 - `ha-json-updater.sh` fetches remote state and writes local JSON atomically.
 - `QingSnow2App -platform offscreen` can keep the stock third-party MQTT sensor
-  publishing path alive without owning the display.
+  publishing path alive without owning the display. Killing Snow entirely stops
+  this path; `miio_client` alone does not publish the third-party MQTT sensor
+  payloads.
 - QML reads local JSON with `XMLHttpRequest` using a `file://` URL.
 - QML displays local images using `Image`.
 - The supervisor restarts the updater and QML if either exits.
@@ -59,6 +61,8 @@ Avoid:
 `miio_client` is not the whole reporting path. On the tested device,
 `QingSnow2App` owns the third-party MQTT connection configured in
 `/data/etc/setting.ini` and publishes sensor payloads to the configured broker.
+If you kill `QingSnow2App` entirely, third-party MQTT publishing stops even if
+`miio_client` is still running.
 
 The useful compromise is to stop the visible stock UI but keep Snow running
 headlessly:
@@ -79,8 +83,9 @@ Snow subscribes to the third-party down topic configured in
 qingping/DEVICE_MAC/down
 ```
 
-The tested device resumed third-party reporting when this payload was published
-to that topic:
+Running Snow offscreen keeps the MQTT client available, but the tested device
+also needed an external request to start or refresh reporting after reboot. It
+resumed third-party reporting when this payload was published to the down topic:
 
 ```json
 {"type":"12","up_itvl":"15","duration":"21600"}

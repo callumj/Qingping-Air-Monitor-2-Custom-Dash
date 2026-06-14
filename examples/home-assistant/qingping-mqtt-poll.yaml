@@ -1,9 +1,11 @@
 # Home Assistant package example.
 #
-# Some Qingping firmware/integration combinations do not begin third-party MQTT
-# reporting after boot until the device receives a report request on its down
-# topic. This automation sends that request on Home Assistant start and then
-# refreshes the reporting window periodically.
+# Killing QingSnow2App entirely stops the stock third-party MQTT publishing
+# path. The custom dashboard approach should keep QingSnow2App running in
+# offscreen/background mode, then send a report request on the device's down
+# topic. Some Qingping firmware/integration combinations do not begin reporting
+# after boot until this request is received. This automation sends that request
+# on Home Assistant start and then refreshes the reporting window periodically.
 #
 # Replace DEVICE_MAC with the uppercase MAC-like device identifier used in your
 # Qingping third-party MQTT topics, for example qingping/DEVICE_MAC/up.

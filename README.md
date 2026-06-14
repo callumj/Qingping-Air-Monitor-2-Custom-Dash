@@ -49,7 +49,8 @@ The stable pattern is:
 3. Stop the stock UI/watchdog processes.
 4. Keep `miio_client` running for Miio support.
 5. Run `QingSnow2App -platform offscreen` if you still want the device's
-   built-in third-party MQTT sensor publishing.
+   built-in third-party MQTT sensor publishing. Killing Snow entirely stops this
+   MQTT publishing path; `miio_client` alone is not enough.
 6. Run a shell updater that fetches Home Assistant state and writes local JSON.
 7. Run `qmlscene -platform eglfs` with a local QML dashboard.
 8. Let the QML read only local files, such as:
@@ -176,8 +177,10 @@ height, preserve aspect ratio, and center horizontally.
 ## Optional MQTT Polling
 
 On the tested device, `QingSnow2App -platform offscreen` kept the third-party
-MQTT client alive, but reporting after reboot still needed a report request on
-the device's down topic.
+MQTT client alive. Killing `QingSnow2App` entirely stopped MQTT publishing even
+though `miio_client` was still running. However, keeping Snow alive in offscreen
+mode was only half of the fix: reporting after reboot still needed a report
+request on the device's down topic.
 
 The topic pattern is configured in `/data/etc/setting.ini`:
 
@@ -266,6 +269,7 @@ recovery path.
 - Keep a way back in via SSH or serial before experimenting.
 - Do not kill `miio_client` if you still want Miio support.
 - Do not kill `QingSnow2App` entirely if you still want the stock third-party
-  MQTT publishing path; run it with `-platform offscreen` instead.
+  MQTT publishing path; run it with `-platform offscreen` instead, then publish
+  the report request on the down topic to start/refresh polling.
 - Do not commit Home Assistant tokens or private URLs.
 - The examples are based on one tested firmware. Paths/process names may vary.
