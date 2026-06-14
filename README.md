@@ -1,5 +1,7 @@
 # Qingping Air Monitor 2 Custom Dash
 
+![Example of device running custom dashboard](device-example.jpeg)
+
 Run a custom Home Assistant dashboard directly on a Qingping Air Monitor 2 /
 CGS2-style display using the device's built-in Qt/EGLFS stack.
 
@@ -174,4 +176,3 @@ height, preserve aspect ratio, and center horizontally.
 - Do not kill `miio_client` if you still want the stock sensor reporting path.
 - Do not commit Home Assistant tokens or private URLs.
 - The examples are based on one tested firmware. Paths/process names may vary.
-
