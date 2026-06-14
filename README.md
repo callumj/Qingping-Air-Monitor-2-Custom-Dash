@@ -168,6 +168,59 @@ This is useful when the source image is too heavy or awkward for the panel to
 load as a web page. The image display uses a centered crop: fit to display
 height, preserve aspect ratio, and center horizontally.
 
+## Optional SSH Hardening
+
+If you leave SSH enabled, switch the device to public-key-only login after you
+have confirmed that key-based login works. The tested firmware uses Dropbear, and
+the practical hardening point is disabling password authentication for root.
+
+Before changing Dropbear, install your public key and verify key login from a
+second terminal:
+
+```sh
+mkdir -p /root/.ssh
+chmod 700 /root /root/.ssh
+cat >> /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
+```
+
+Then test from your computer:
+
+```sh
+ssh -o BatchMode=yes \
+  -o PubkeyAcceptedAlgorithms=+ssh-rsa \
+  -o HostkeyAlgorithms=+ssh-rsa \
+  -o PreferredAuthentications=publickey \
+  -o PasswordAuthentication=no \
+  root@DEVICE_IP 'echo publickey_login_ok'
+```
+
+Only after that succeeds, persist Dropbear options:
+
+```sh
+cat >/etc/default/dropbear <<'EOF'
+# Public-key auth only, with fewer auth attempts.
+DROPBEAR_ARGS="-s -T 3"
+EOF
+```
+
+Restart Dropbear or reboot the device, then confirm it came back with the
+expected arguments:
+
+```sh
+ps -o pid,ppid,stat,comm,args | grep dropbear | grep -v grep
+```
+
+Expected process arguments include:
+
+```text
+/usr/sbin/dropbear -s -T 3 -R
+```
+
+The `-s` flag disables password logins. Do not do this until you know your
+public key works, or you can lock yourself out unless you have serial or another
+recovery path.
+
 ## Notes And Warnings
 
 - This is not a polished product. It is a practical field guide and starter kit.
