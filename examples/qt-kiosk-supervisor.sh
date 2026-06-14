@@ -3,9 +3,11 @@
 DIR=/userdata/qt-kiosk
 QML="$DIR/Dashboard.qml"
 UPDATER="$DIR/ha-json-updater.sh"
+SNOW_APP=/qingping/bin/QingSnow2App
 PIDFILE=/tmp/qt-kiosk-supervisor.pid
 QML_PIDFILE=/tmp/qt-kiosk-qml.pid
 UPDATER_PIDFILE=/tmp/qt-kiosk-updater.pid
+SNOW_PIDFILE=/tmp/qingsnow-offscreen.pid
 LOG=/tmp/qt-kiosk-supervisor.log
 
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
@@ -43,6 +45,14 @@ kill_matching() {
   done
 }
 
+kill_stock_snow_ui() {
+  ps -o pid,args | grep QingSnow2App | grep -v grep | while read pid args; do
+    [ "$pid" = "$$" ] && continue
+    echo "$args" | grep -q -- "-platform offscreen" && continue
+    kill "$pid" 2>/dev/null || true
+  done
+}
+
 wait_no_matching() {
   pattern="$1"
   count=0
@@ -61,9 +71,19 @@ wait_no_matching() {
 
 stop_stock_ui() {
   killall watchdog.sh 2>/dev/null || true
-  killall QingSnow2App 2>/dev/null || true
+  kill_stock_snow_ui
   killall QLauncher 2>/dev/null || true
   killall weston 2>/dev/null || true
+}
+
+start_snow_offscreen() {
+  if ! is_running "QingSnow2App.*offscreen"; then
+    log "starting QingSnow2App offscreen for MQTT/sensor reporting"
+    cd /qingping/bin || return 1
+    QT_QPA_PLATFORM=offscreen \
+    nohup "$SNOW_APP" -platform offscreen >> /tmp/qingsnow-offscreen.out 2>&1 </dev/null &
+    echo $! > "$SNOW_PIDFILE"
+  fi
 }
 
 start_updater() {
@@ -112,6 +132,7 @@ start_supervisor() {
 
   while :; do
     stop_stock_ui
+    start_snow_offscreen
     start_updater
     start_qml
     sleep 5
@@ -124,8 +145,10 @@ stop_supervisor() {
   wait_no_matching "$DIR/qt-kiosk-supervisor.sh start" || true
   kill_pidfile "$QML_PIDFILE"
   kill_pidfile "$UPDATER_PIDFILE"
+  kill_pidfile "$SNOW_PIDFILE"
   kill_matching "qmlscene.*$QML"
   kill_matching "$UPDATER"
+  kill_matching "QingSnow2App.*offscreen"
   log "supervisor stopped"
 }
 
@@ -146,4 +169,3 @@ case "${1:-run}" in
     exit 2
     ;;
 esac
-

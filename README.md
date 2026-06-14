@@ -47,10 +47,12 @@ The stable pattern is:
 1. Let the stock boot sequence initialize hardware, Wi-Fi, sensors, and Miio.
 2. Start a late init.d script after the stock launcher.
 3. Stop the stock UI/watchdog processes.
-4. Keep `miio_client` running so background reporting continues.
-5. Run a shell updater that fetches Home Assistant state and writes local JSON.
-6. Run `qmlscene -platform eglfs` with a local QML dashboard.
-7. Let the QML read only local files, such as:
+4. Keep `miio_client` running for Miio support.
+5. Run `QingSnow2App -platform offscreen` if you still want the device's
+   built-in third-party MQTT sensor publishing.
+6. Run a shell updater that fetches Home Assistant state and writes local JSON.
+7. Run `qmlscene -platform eglfs` with a local QML dashboard.
+8. Let the QML read only local files, such as:
    - `/userdata/qt-kiosk/state.json`
    - `/userdata/qt-kiosk/garden-latest.jpg`
 
@@ -136,8 +138,9 @@ ps -o pid,ppid,stat,comm,args | grep -E "qt-kiosk|qmlscene|ha-json|QingSnow|watc
 Expected:
 
 - `miio_client` is still running.
+- `QingSnow2App -platform offscreen` is running if MQTT reporting is enabled.
 - `watchdog.sh` is not running.
-- `QingSnow2App` is not running.
+- no visible/non-offscreen `QingSnow2App` is running.
 - `qt-kiosk-supervisor.sh` is running.
 - `ha-json-updater.sh` is running.
 - `qmlscene -platform eglfs ... Dashboard.qml` is running.
@@ -226,6 +229,8 @@ recovery path.
 - This is not a polished product. It is a practical field guide and starter kit.
 - You are modifying boot behavior on an embedded device.
 - Keep a way back in via SSH or serial before experimenting.
-- Do not kill `miio_client` if you still want the stock sensor reporting path.
+- Do not kill `miio_client` if you still want Miio support.
+- Do not kill `QingSnow2App` entirely if you still want the stock third-party
+  MQTT publishing path; run it with `-platform offscreen` instead.
 - Do not commit Home Assistant tokens or private URLs.
 - The examples are based on one tested firmware. Paths/process names may vary.

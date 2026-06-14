@@ -10,7 +10,8 @@
 - User data: `/userdata`
 - Vendor UI process: `QingSnow2App`
 - Vendor watchdog: `/qingping/bin/watchdog.sh`
-- Background reporting: `/qingping/bin/miio/miio_client`
+- Miio client: `/qingping/bin/miio/miio_client`
+- Third-party MQTT publishing: `QingSnow2App`
 
 ## Init Flow
 
@@ -38,6 +39,8 @@ shell JSON updater is simpler and more reliable.
 The most reliable pattern found:
 
 - `ha-json-updater.sh` fetches remote state and writes local JSON atomically.
+- `QingSnow2App -platform offscreen` can keep the stock third-party MQTT sensor
+  publishing path alive without owning the display.
 - QML reads local JSON with `XMLHttpRequest` using a `file://` URL.
 - QML displays local images using `Image`.
 - The supervisor restarts the updater and QML if either exits.
@@ -48,6 +51,24 @@ Avoid:
 - Starting `qmlscene` in a shell that exits immediately without `nohup` or a
   supervisor.
 - Killing `miio_client` if you still rely on the device's sensor reporting.
+- Killing every `QingSnow2App` process if you still rely on the stock
+  third-party MQTT publishing path.
+
+## MQTT Reporting
+
+`miio_client` is not the whole reporting path. On the tested device,
+`QingSnow2App` owns the third-party MQTT connection configured in
+`/data/etc/setting.ini` and publishes sensor payloads to the configured broker.
+
+The useful compromise is to stop the visible stock UI but keep Snow running
+headlessly:
+
+```sh
+QT_QPA_PLATFORM=offscreen /qingping/bin/QingSnow2App -platform offscreen
+```
+
+This allows a custom `qmlscene -platform eglfs` dashboard to own the display
+while Snow continues publishing MQTT sensor data in the background.
 
 ## SSH And Dropbear
 
