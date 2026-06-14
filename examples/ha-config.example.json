@@ -1,0 +1,20 @@
+{
+  "baseUrl": "https://homeassistant.example.com",
+  "token": "REPLACE_WITH_LONG_LIVED_ACCESS_TOKEN",
+  "entities": {
+    "roomTemp": "sensor.bedroom_temperature",
+    "humidity": "sensor.bedroom_humidity",
+    "co2": "sensor.bedroom_co2",
+    "outdoorTemp": "sensor.outdoor_temperature",
+    "outdoorHumidity": "sensor.outdoor_humidity",
+    "waterTemp": "sensor.water_temperature",
+    "weather": "weather.home",
+    "light": "light.bedroom_lights"
+  },
+  "garden": {
+    "enabled": false,
+    "api": "https://example.com/api/cameras/snapshots?days=14",
+    "baseUrl": "https://example.com"
+  }
+}
+

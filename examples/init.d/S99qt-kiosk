@@ -1,0 +1,37 @@
+#!/bin/sh
+
+SUPERVISOR=/userdata/qt-kiosk/qt-kiosk-supervisor.sh
+LOG=/tmp/qt-kiosk-init.log
+
+case "$1" in
+  start)
+    echo "$(date '+%Y-%m-%d %H:%M:%S') starting qt kiosk supervisor" >> "$LOG"
+    count=0
+    while [ ! -f "$SUPERVISOR" ]; do
+      count=$((count + 1))
+      if [ "$count" -gt 30 ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') missing $SUPERVISOR after wait" >> "$LOG"
+        exit 1
+      fi
+      sleep 2
+    done
+    nohup /bin/sh "$SUPERVISOR" start >> "$LOG" 2>&1 </dev/null &
+    ;;
+  stop)
+    if [ -f "$SUPERVISOR" ]; then
+      /bin/sh "$SUPERVISOR" stop >> "$LOG" 2>&1
+    fi
+    ;;
+  restart)
+    "$0" stop
+    sleep 1
+    "$0" start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 2
+    ;;
+esac
+
+exit 0
+

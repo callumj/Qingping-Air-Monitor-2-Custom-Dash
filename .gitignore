@@ -1,0 +1,7 @@
+.DS_Store
+ha-config.json
+state.json
+garden-latest.jpg
+*.tmp
+*.log
+
