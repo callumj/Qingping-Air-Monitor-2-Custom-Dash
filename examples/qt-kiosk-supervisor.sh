@@ -76,6 +76,17 @@ stop_stock_ui() {
   killall weston 2>/dev/null || true
 }
 
+suppress_miio_cloud() {
+  # miio_client enforces Xiaomi cloud connectivity and can tear down Wi-Fi when
+  # WAN is blocked. Snow can still publish local third-party MQTT without it.
+  for pattern in "miio_client " "miio_client_helper_nomqtt.sh" "miio_recv_line"; do
+    if is_running "$pattern"; then
+      log "suppressing $pattern"
+      kill_matching "$pattern"
+    fi
+  done
+}
+
 start_snow_offscreen() {
   if ! is_running "QingSnow2App.*offscreen"; then
     log "starting QingSnow2App offscreen for MQTT/sensor reporting"
@@ -133,6 +144,7 @@ start_supervisor() {
   while :; do
     stop_stock_ui
     start_snow_offscreen
+    suppress_miio_cloud
     start_updater
     start_qml
     sleep 5

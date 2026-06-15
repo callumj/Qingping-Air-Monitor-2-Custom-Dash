@@ -43,6 +43,15 @@ The most reliable pattern found:
   without owning the display. Killing Snow entirely stops data publishing,
   including Qingping's own data flow and the MQTT payloads consumed by Home
   Assistant. `miio_client` alone is not enough.
+- For local-only/WAN-blocked operation, suppress `miio_client`,
+  `miio_client_helper_nomqtt.sh`, and `miio_recv_line` after boot. On the tested
+  unit, `miio_client` logged `sta will close in ...` when Xiaomi/Mijia cloud was
+  unreachable and eventually tore down Wi-Fi. Snow offscreen continued
+  publishing third-party MQTT without `miio_client`.
+- For WAN-blocked operation, Snow may still run its own connectivity verifier.
+  The tested binary contained hardcoded public ping/DNS targets and issued
+  commands shaped like `ping -c 1 TARGET -W 2`. Failed verifier checks can still
+  destabilize Wi-Fi even when local MQTT is healthy.
 - QML reads local JSON with `XMLHttpRequest` using a `file://` URL.
 - QML displays local images using `Image`.
 - The supervisor restarts the updater and QML if either exits.
@@ -52,7 +61,7 @@ Avoid:
 - Direct QML HTTPS calls to Home Assistant.
 - Starting `qmlscene` in a shell that exits immediately without `nohup` or a
   supervisor.
-- Killing `miio_client` if you still rely on Miio support.
+- Killing `miio_client` if you still rely on Miio/Xiaomi cloud support.
 - Killing every `QingSnow2App` process if you still rely on sensor data being
   published anywhere.
 
@@ -73,6 +82,30 @@ QT_QPA_PLATFORM=offscreen /qingping/bin/QingSnow2App -platform offscreen
 
 This allows a custom `qmlscene -platform eglfs` dashboard to own the display
 while Snow continues publishing sensor data in the background.
+
+### Local-Only MQTT And Network Verification
+
+On the tested device, `/data/etc/setting.ini` had both a `[third]` MQTT section
+and a vendor `[host]` MQTT section. For a LAN-only setup, both were pointed at
+the local MQTT broker. With only WAN egress blocked, leaving the vendor host
+pointing at the cloud caused repeated failed cloud connection attempts.
+
+Snow also performed Wi-Fi verification by running pings against public targets,
+including hardcoded IPs and DNS-derived targets. Allowing ICMP can help, but it
+is not necessarily sufficient because the set of targets can vary. The tested
+stable experiment used:
+
+- `QingSnow2App -platform offscreen` for sensor publishing.
+- Local MQTT broker settings for both `[host]` and `[third]`.
+- Suppression of `miio_client`, `miio_client_helper_nomqtt.sh`, and
+  `miio_recv_line`.
+- A targeted `/bin/ping` wrapper that passes LAN pings through to
+  `/bin/ping.real` but reports success for Snow's non-LAN one-shot verifier
+  pattern.
+
+The wrapper example is in `examples/ping-wrapper.sh`. Treat it as experimental:
+it replaces a system binary, so keep the original as `/bin/ping.real` and verify
+that LAN pings still use the real binary.
 
 ### MQTT Report Request
 

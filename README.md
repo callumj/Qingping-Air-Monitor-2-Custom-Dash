@@ -47,11 +47,12 @@ The stable pattern is:
 1. Let the stock boot sequence initialize hardware, Wi-Fi, sensors, and Miio.
 2. Start a late init.d script after the stock launcher.
 3. Stop the stock UI/watchdog processes.
-4. Keep `miio_client` running for Miio support.
+4. Suppress `miio_client` and its helper if you want the device to survive WAN
+   egress blocking. On the tested unit, `miio_client` scheduled Wi-Fi station
+   shutdown when Xiaomi/Mijia cloud connectivity failed.
 5. Run `QingSnow2App -platform offscreen`. This is critical: killing Snow
    entirely stops the device's sensor data publishing path, including Qingping's
-   own data flow and the MQTT data used by Home Assistant. `miio_client` alone is
-   not enough.
+   own data flow and the MQTT data used by Home Assistant.
 6. Run a shell updater that fetches Home Assistant state and writes local JSON.
 7. Run `qmlscene -platform eglfs` with a local QML dashboard.
 8. Let the QML read only local files, such as:
@@ -141,7 +142,7 @@ ps -o pid,ppid,stat,comm,args | grep -E "qt-kiosk|qmlscene|ha-json|QingSnow|watc
 
 Expected:
 
-- `miio_client` is still running.
+- `miio_client`, `miio_client_helper_nomqtt.sh`, and `miio_recv_line` are not running if you are using the local-only/WAN-blocked pattern.
 - `QingSnow2App -platform offscreen` is running so sensor data continues to publish.
 - `watchdog.sh` is not running.
 - no visible/non-offscreen `QingSnow2App` is running.
@@ -157,6 +158,12 @@ Qingping's own data path and the MQTT updates consumed by Home Assistant.
 `miio_client` remained running, but it was not enough to make sensor data
 available.
 
+For local-only operation, the tested device worked better with `miio_client`
+suppressed after boot. When WAN egress was blocked, `miio_client` logged
+`sta will close in ...` and eventually tore down Wi-Fi, which also broke SSH and
+local MQTT. Snow offscreen continued publishing third-party MQTT without
+`miio_client`, though Miio/Xiaomi cloud features were no longer available.
+
 The working compromise is to keep Snow running without letting it own the
 display:
 
@@ -166,6 +173,51 @@ QT_QPA_PLATFORM=offscreen /qingping/bin/QingSnow2App -platform offscreen
 
 Keeping Snow alive in offscreen mode preserves the publisher, but reporting
 after reboot may still need a report request on the device's MQTT down topic.
+
+### WAN-Blocked / Local-Only Notes
+
+For a fully local setup, there are two separate cloud paths to consider:
+
+- `miio_client` tries to maintain Xiaomi/Mijia cloud connectivity and can tear
+  down Wi-Fi when that fails. Suppressing `miio_client` avoided the LAN drop on
+  the tested unit.
+- `QingSnow2App` still performs its own network checks and vendor service calls
+  while running offscreen. Snow is still required for local sensor publishing,
+  so do not kill it if you need MQTT data.
+
+On the tested device, Snow's settings in `/data/etc/setting.ini` contained both
+`[third]` MQTT settings and a vendor `[host]` MQTT endpoint. Rewriting both to a
+local broker kept Snow's MQTT sockets on LAN:
+
+```ini
+[host]
+host=LOCAL_MQTT_BROKER
+port=1883
+tls=0
+username=YOUR_LOCAL_USERNAME
+password=YOUR_LOCAL_PASSWORD
+
+[third]
+host=LOCAL_MQTT_BROKER
+port=1883
+tls=0
+username=YOUR_LOCAL_USERNAME
+password=YOUR_LOCAL_PASSWORD
+```
+
+Snow also runs one-shot Wi-Fi verification commands shaped like
+`ping -c 1 TARGET -W 2`. If WAN egress is blocked, allowing outbound ICMP may
+help only if every target it probes is permitted. A more deterministic local-only
+experiment is to save the original `/bin/ping` as `/bin/ping.real` and install a
+targeted wrapper that passes LAN pings through but returns success for Snow's
+non-LAN one-shot verifier pings. See:
+
+```text
+examples/ping-wrapper.sh
+```
+
+This is an invasive change because it replaces a system binary. Keep
+`/bin/ping.real` so you can roll back quickly.
 
 The topic pattern is configured in `/data/etc/setting.ini`:
 
@@ -278,7 +330,9 @@ recovery path.
 - This is not a polished product. It is a practical field guide and starter kit.
 - You are modifying boot behavior on an embedded device.
 - Keep a way back in via SSH or serial before experimenting.
-- Do not kill `miio_client` if you still want Miio support.
+- Do not kill `miio_client` if you still want Miio/Xiaomi cloud support. Do
+  suppress it if you are intentionally building a local-only dashboard and
+  blocking WAN egress.
 - Do not kill `QingSnow2App` entirely if you still want sensor data available
   anywhere; run it with `-platform offscreen` instead, then publish the report
   request on the down topic to start/refresh polling.
