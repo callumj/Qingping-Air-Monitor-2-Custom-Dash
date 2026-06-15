@@ -107,6 +107,15 @@ The wrapper example is in `examples/ping-wrapper.sh`. Treat it as experimental:
 it replaces a system binary, so keep the original as `/bin/ping.real` and verify
 that LAN pings still use the real binary.
 
+Validation on the tested unit:
+
+- WAN egress blocked.
+- Outbound ICMP permitted.
+- Snow running offscreen.
+- Local MQTT broker connections remained established overnight.
+- Device remained reachable over SSH after more than 11 hours of uptime.
+- Home Assistant continued receiving fresh sensor updates.
+
 ### MQTT Report Request
 
 For MQTT integrations, Snow subscribes to the down topic configured in

@@ -219,6 +219,12 @@ examples/ping-wrapper.sh
 This is an invasive change because it replaces a system binary. Keep
 `/bin/ping.real` so you can roll back quickly.
 
+On the tested unit, this local-only pattern was checked immediately after a
+reboot and again after an overnight run. With WAN egress blocked and outbound
+ICMP permitted, the device stayed reachable for more than 11 hours, Snow kept
+publishing sensor data to the local MQTT broker, and Home Assistant continued to
+receive fresh humidity, CO2, temperature, and particulate readings.
+
 The topic pattern is configured in `/data/etc/setting.ini`:
 
 ```ini
